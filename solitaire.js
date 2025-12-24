@@ -782,31 +782,164 @@ class Solitaire {
     }
 
     handleCardClick(card) {
-        if (this.selectedCard) {
-            // Try to move selected card to this card's location
-            const targetLocation = this.findCardLocation(card);
-            if (targetLocation) {
-                let moved = false;
-                if (targetLocation.type === 'tableau') {
-                    moved = this.moveCard(this.selectedCard, 'tableau', targetLocation.pileIndex);
-                } else if (targetLocation.type === 'foundation') {
-                    moved = this.moveCard(this.selectedCard, 'foundation', targetLocation.pileIndex);
+        // Try to auto-move with animation on single tap
+        const bestMove = this.findBestMoveForCard(card);
+        if (bestMove) {
+            this.animateCardMove(card, bestMove.targetType, bestMove.targetIndex);
+            return;
+        }
+
+        // No valid move - just provide feedback
+        this.hapticFeedback('light');
+    }
+
+    findBestMoveForCard(card) {
+        const location = this.findCardLocation(card);
+        if (!location) return null;
+
+        // For tableau cards, check if it's the top card or a valid stack
+        if (location.type === 'tableau') {
+            const pile = this.tableau[location.pileIndex];
+            // Only allow moving if it's a face-up card
+            if (!card.faceUp) return null;
+        }
+
+        // For waste, only top card can move
+        if (location.type === 'waste') {
+            if (this.waste[this.waste.length - 1].id !== card.id) return null;
+        }
+
+        // For foundation, only top card can move
+        if (location.type === 'foundation') {
+            const foundation = this.foundations[location.pileIndex];
+            if (foundation[foundation.length - 1].id !== card.id) return null;
+        }
+
+        // Priority 1: Move to foundation (single cards only)
+        if (location.type !== 'tableau' || location.cardIndex === this.tableau[location.pileIndex].length - 1) {
+            for (let i = 0; i < 4; i++) {
+                if (this.canMoveToFoundation(card, i)) {
+                    return { targetType: 'foundation', targetIndex: i };
                 }
-                this.clearSelection();
-                if (moved) return;
             }
-            this.clearSelection();
         }
 
-        // Select this card
-        this.selectedCard = card;
-        const cardEl = document.querySelector(`[data-card-id="${card.id}"]`);
-        if (cardEl) {
-            cardEl.classList.add('selected');
+        // Priority 2: Move to tableau
+        for (let t = 0; t < 7; t++) {
+            // Don't move to same pile
+            if (location.type === 'tableau' && location.pileIndex === t) continue;
+            if (this.canMoveToTableau(card, t)) {
+                // Prefer moves to non-empty piles
+                if (this.tableau[t].length > 0) {
+                    return { targetType: 'tableau', targetIndex: t };
+                }
+            }
         }
 
-        // Highlight valid drop targets
-        this.highlightValidTargets(card);
+        // Priority 3: Move King to empty tableau
+        if (card.rank === 'K') {
+            for (let t = 0; t < 7; t++) {
+                if (location.type === 'tableau' && location.pileIndex === t) continue;
+                if (this.tableau[t].length === 0) {
+                    return { targetType: 'tableau', targetIndex: t };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    animateCardMove(card, targetType, targetIndex) {
+        const location = this.findCardLocation(card);
+        if (!location) return;
+
+        // Get all cards to animate (for tableau stacks)
+        let cardsToAnimate = [];
+        if (location.type === 'tableau') {
+            const pile = this.tableau[location.pileIndex];
+            cardsToAnimate = pile.slice(location.cardIndex).map(c => ({
+                card: c,
+                el: document.querySelector(`[data-card-id="${c.id}"]`)
+            }));
+        } else {
+            const el = document.querySelector(`[data-card-id="${card.id}"]`);
+            cardsToAnimate = [{ card, el }];
+        }
+
+        // Calculate target position
+        let targetEl;
+        if (targetType === 'foundation') {
+            targetEl = document.getElementById(`foundation-${targetIndex}`);
+        } else {
+            const pile = this.tableau[targetIndex];
+            if (pile.length > 0) {
+                const topCard = pile[pile.length - 1];
+                targetEl = document.querySelector(`[data-card-id="${topCard.id}"]`);
+            } else {
+                targetEl = document.getElementById(`tableau-${targetIndex}`);
+            }
+        }
+
+        if (!targetEl || cardsToAnimate.length === 0 || !cardsToAnimate[0].el) {
+            // Fallback to instant move
+            this.moveCard(card, targetType, targetIndex);
+            return;
+        }
+
+        const targetRect = targetEl.getBoundingClientRect();
+        const tableauOffset = parseInt(getComputedStyle(document.documentElement)
+            .getPropertyValue('--tableau-offset')) || 25;
+
+        // Animate each card
+        cardsToAnimate.forEach(({ el }, i) => {
+            const startRect = el.getBoundingClientRect();
+
+            // Calculate target Y offset for stacking
+            let targetY = targetRect.top;
+            if (targetType === 'tableau' && this.tableau[targetIndex].length > 0) {
+                targetY += tableauOffset;
+            }
+            targetY += i * tableauOffset;
+
+            const deltaX = targetRect.left - startRect.left;
+            const deltaY = targetY - startRect.top;
+
+            el.style.transition = 'none';
+            el.style.position = 'fixed';
+            el.style.left = `${startRect.left}px`;
+            el.style.top = `${startRect.top}px`;
+            el.style.zIndex = 1000 + i;
+            el.style.width = `${startRect.width}px`;
+            el.style.height = `${startRect.height}px`;
+
+            // Force reflow
+            el.offsetHeight;
+
+            el.style.transition = 'left 0.25s ease-out, top 0.25s ease-out';
+            el.style.left = `${startRect.left + deltaX}px`;
+            el.style.top = `${startRect.top + deltaY}px`;
+        });
+
+        // After animation, do the actual move
+        setTimeout(() => {
+            // Reset styles
+            cardsToAnimate.forEach(({ el }) => {
+                if (el) {
+                    el.style.transition = '';
+                    el.style.position = '';
+                    el.style.left = '';
+                    el.style.top = '';
+                    el.style.zIndex = '';
+                    el.style.width = '';
+                    el.style.height = '';
+                }
+            });
+
+            // Perform the actual game state move
+            this.moveCard(card, targetType, targetIndex);
+        }, 250);
+
+        this.hapticFeedback('light');
     }
 
     clearSelection() {
