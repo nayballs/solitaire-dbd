@@ -1,4 +1,4 @@
-const CACHE_NAME = 'solitaire-v9';
+const CACHE_NAME = 'solitaire-v16';
 const ASSETS = [
     './',
     './index.html',
@@ -8,7 +8,7 @@ const ASSETS = [
     './icons/icon-192.png',
     './icons/icon-512.png',
     './icons/icon-180.png',
-    './icons/mikaela.png'
+    './icons/8fe63f31-7b0f-4650-a009-9b0361d14bf1-removebg-preview.png'
 ];
 
 // Install - cache all assets

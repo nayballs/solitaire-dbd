@@ -674,34 +674,35 @@ class Solitaire {
         const container = document.createElement('div');
         container.className = 'mikaela-container';
 
-        // Create the streak display that Mikaela points at
-        const streakDisplay = document.createElement('div');
-        streakDisplay.className = 'mikaela-streak-display';
-        streakDisplay.innerHTML = `
-            <div class="streak-label">WIN STREAK</div>
-            <div class="streak-number">${this.streak}</div>
-        `;
-        container.appendChild(streakDisplay);
-
         // Create glow effect
         const glow = document.createElement('div');
         glow.className = 'mikaela-glow';
         container.appendChild(glow);
 
-        // Check if custom image exists, otherwise use CSS silhouette
+        // Check if custom image exists, otherwise use CSS silhouette with streak
         const img = new Image();
-        img.src = 'icons/mikaela.png';
+        img.src = 'icons/8fe63f31-7b0f-4650-a009-9b0361d14bf1-removebg-preview.png';
 
         img.onload = () => {
-            // Image exists - use it
+            // Image exists - use it with dynamic streak overlay
             img.className = 'mikaela-character';
             img.alt = 'Mikaela';
-            container.insertBefore(img, streakDisplay);
+            container.insertBefore(img, glow);
+
+            // Add dynamic streak display next to Mikaela
+            const streakDisplay = document.createElement('div');
+            streakDisplay.className = 'mikaela-streak-display';
+            streakDisplay.innerHTML = `
+                <div class="streak-label">WIN STREAK</div>
+                <div class="streak-number">${this.streak}</div>
+            `;
+            container.appendChild(streakDisplay);
+
             this.addMikaelaMagicEffects(container);
         };
 
         img.onerror = () => {
-            // No image - use CSS silhouette
+            // No image - use CSS silhouette with dynamic streak
             const silhouette = document.createElement('div');
             silhouette.className = 'mikaela-silhouette';
             silhouette.innerHTML = `
@@ -712,7 +713,17 @@ class Solitaire {
                 <div class="mikaela-hand left"></div>
                 <div class="mikaela-hand right"></div>
             `;
-            container.insertBefore(silhouette, streakDisplay);
+            container.insertBefore(silhouette, glow);
+
+            // Add streak display for silhouette fallback
+            const streakDisplay = document.createElement('div');
+            streakDisplay.className = 'mikaela-streak-display';
+            streakDisplay.innerHTML = `
+                <div class="streak-label">WIN STREAK</div>
+                <div class="streak-number">${this.streak}</div>
+            `;
+            container.appendChild(streakDisplay);
+
             this.addMikaelaMagicEffects(container);
         };
 
@@ -737,10 +748,41 @@ class Solitaire {
             sparkle.className = 'magic-sparkle';
             container.appendChild(sparkle);
         }
+
+        // Add floating embers around Mikaela
+        for (let i = 0; i < 8; i++) {
+            const ember = document.createElement('div');
+            ember.className = 'mikaela-ember';
+            container.appendChild(ember);
+        }
     }
 
     hideWinModal() {
         document.getElementById('win-modal').classList.add('hidden');
+    }
+
+    // Auto-win for testing
+    autoWin() {
+        // Clear everything
+        this.stock = [];
+        this.waste = [];
+        this.tableau = [[], [], [], [], [], [], []];
+
+        // Fill foundations with complete suits
+        const suits = ['♠', '♥', '♦', '♣'];
+        this.foundations = suits.map(suit => {
+            return this.ranks.map((rank, i) => ({
+                suit,
+                rank,
+                value: i + 1,
+                color: this.suitColors[suit],
+                faceUp: true,
+                id: `${rank}${suit}`
+            }));
+        });
+
+        this.render();
+        this.checkWin();
     }
 
     // Rendering
