@@ -93,10 +93,16 @@ body::before {
 
 .header-left, .header-right {
     flex: 1;
+    display: flex;
+}
+
+.header-left {
+    justify-content: flex-start;
 }
 
 .header-right {
-    text-align: right;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 .header-center {
@@ -594,13 +600,18 @@ body::before {
     }
 
     .header-btn {
-        padding: 6px 12px;
-        font-size: 12px;
+        padding: 6px 10px;
+        font-size: 11px;
+        letter-spacing: 0.5px;
     }
 
     .header-center {
-        font-size: 12px;
-        gap: 12px;
+        font-size: 11px;
+        gap: 8px;
+    }
+
+    .header-right {
+        gap: 5px;
     }
 
     #game-board {
