@@ -630,6 +630,26 @@ body::before {
     #tableau-area {
         margin-top: calc(var(--card-height) + 15px);
     }
+
+    /* Mikaela adjustments for mobile */
+    .mikaela-container {
+        transform: translateX(-50%);
+        left: 30%;
+    }
+
+    .mikaela-container.show {
+        bottom: 0;
+    }
+
+    .mikaela-character {
+        width: 180px;
+        max-height: 250px;
+    }
+
+    /* Hide the streak display on mobile - modal already shows it */
+    .mikaela-streak-display {
+        display: none;
+    }
 }
 
 /* Landscape phone adjustments */
