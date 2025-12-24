@@ -530,6 +530,25 @@ body::before {
     box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
 }
 
+/* Hint pulse animation */
+@keyframes hintPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 3px var(--entity-orange), 0 0 15px rgba(255, 107, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 0 6px var(--entity-orange), 0 0 30px rgba(255, 107, 0, 0.8);
+    }
+}
+
+.hint-pulse {
+    animation: hintPulse 0.5s ease-in-out 3;
+    z-index: 100;
+}
+
+.card-pile.hint-pulse {
+    animation: hintPulse 0.5s ease-in-out 3;
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
     :root {

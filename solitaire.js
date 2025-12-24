@@ -338,6 +338,137 @@ class Solitaire {
         return false;
     }
 
+    findHint() {
+        // Priority 1: Move to foundation
+        // Check waste
+        if (this.waste.length > 0) {
+            const card = this.waste[this.waste.length - 1];
+            for (let i = 0; i < 4; i++) {
+                if (this.canMoveToFoundation(card, i)) {
+                    return { card, targetType: 'foundation', targetIndex: i };
+                }
+            }
+        }
+        // Check tableau top cards
+        for (let t = 0; t < 7; t++) {
+            const pile = this.tableau[t];
+            if (pile.length > 0) {
+                const card = pile[pile.length - 1];
+                for (let i = 0; i < 4; i++) {
+                    if (this.canMoveToFoundation(card, i)) {
+                        return { card, targetType: 'foundation', targetIndex: i };
+                    }
+                }
+            }
+        }
+
+        // Priority 2: Move cards between tableau piles
+        for (let t = 0; t < 7; t++) {
+            const pile = this.tableau[t];
+            for (let cardIdx = 0; cardIdx < pile.length; cardIdx++) {
+                const card = pile[cardIdx];
+                if (!card.faceUp) continue;
+
+                for (let targetT = 0; targetT < 7; targetT++) {
+                    if (targetT === t) continue;
+                    if (this.canMoveToTableau(card, targetT)) {
+                        // Prefer moves that reveal face-down cards
+                        if (cardIdx > 0 && !pile[cardIdx - 1].faceUp) {
+                            return { card, targetType: 'tableau', targetIndex: targetT };
+                        }
+                        // Or moves to non-empty piles (moving Kings to empty is less useful)
+                        if (this.tableau[targetT].length > 0) {
+                            return { card, targetType: 'tableau', targetIndex: targetT };
+                        }
+                    }
+                }
+            }
+        }
+
+        // Priority 3: Move waste card to tableau
+        if (this.waste.length > 0) {
+            const card = this.waste[this.waste.length - 1];
+            for (let t = 0; t < 7; t++) {
+                if (this.canMoveToTableau(card, t)) {
+                    return { card, targetType: 'tableau', targetIndex: t };
+                }
+            }
+        }
+
+        // Priority 4: Move Kings to empty tableau slots
+        for (let t = 0; t < 7; t++) {
+            const pile = this.tableau[t];
+            for (let cardIdx = 0; cardIdx < pile.length; cardIdx++) {
+                const card = pile[cardIdx];
+                if (!card.faceUp || card.rank !== 'K') continue;
+                if (cardIdx === 0) continue; // King already at bottom, no point moving
+
+                for (let targetT = 0; targetT < 7; targetT++) {
+                    if (targetT === t) continue;
+                    if (this.tableau[targetT].length === 0) {
+                        return { card, targetType: 'tableau', targetIndex: targetT };
+                    }
+                }
+            }
+        }
+
+        // No move found - suggest drawing from stock
+        if (this.stock.length > 0 || this.waste.length > 0) {
+            return { drawStock: true };
+        }
+
+        return null;
+    }
+
+    showHint() {
+        this.clearSelection();
+        const hint = this.findHint();
+
+        if (!hint) {
+            this.hapticFeedback('heavy');
+            return;
+        }
+
+        if (hint.drawStock) {
+            // Highlight the stock pile
+            const stockEl = document.getElementById('stock');
+            stockEl.classList.add('hint-pulse');
+            setTimeout(() => stockEl.classList.remove('hint-pulse'), 1500);
+            this.hapticFeedback('light');
+            return;
+        }
+
+        // Highlight the source card
+        const cardEl = document.querySelector(`[data-card-id="${hint.card.id}"]`);
+        if (cardEl) {
+            cardEl.classList.add('hint-pulse');
+            setTimeout(() => cardEl.classList.remove('hint-pulse'), 1500);
+        }
+
+        // Highlight the target
+        if (hint.targetType === 'foundation') {
+            const foundEl = document.getElementById(`foundation-${hint.targetIndex}`);
+            foundEl.classList.add('hint-pulse');
+            setTimeout(() => foundEl.classList.remove('hint-pulse'), 1500);
+        } else if (hint.targetType === 'tableau') {
+            const pile = this.tableau[hint.targetIndex];
+            if (pile.length > 0) {
+                const topCard = pile[pile.length - 1];
+                const topCardEl = document.querySelector(`[data-card-id="${topCard.id}"]`);
+                if (topCardEl) {
+                    topCardEl.classList.add('hint-pulse');
+                    setTimeout(() => topCardEl.classList.remove('hint-pulse'), 1500);
+                }
+            } else {
+                const pileEl = document.getElementById(`tableau-${hint.targetIndex}`);
+                pileEl.classList.add('hint-pulse');
+                setTimeout(() => pileEl.classList.remove('hint-pulse'), 1500);
+            }
+        }
+
+        this.hapticFeedback('medium');
+    }
+
     tryAutoComplete() {
         // Check if all cards are face up (game is winnable)
         let allFaceUp = true;
@@ -652,10 +783,15 @@ class Solitaire {
 
     handleCardClick(card) {
         if (this.selectedCard) {
-            // Try to move selected card to this card's pile
+            // Try to move selected card to this card's location
             const targetLocation = this.findCardLocation(card);
-            if (targetLocation && targetLocation.type === 'tableau') {
-                const moved = this.moveCard(this.selectedCard, 'tableau', targetLocation.pileIndex);
+            if (targetLocation) {
+                let moved = false;
+                if (targetLocation.type === 'tableau') {
+                    moved = this.moveCard(this.selectedCard, 'tableau', targetLocation.pileIndex);
+                } else if (targetLocation.type === 'foundation') {
+                    moved = this.moveCard(this.selectedCard, 'foundation', targetLocation.pileIndex);
+                }
                 this.clearSelection();
                 if (moved) return;
             }
@@ -835,6 +971,9 @@ class Solitaire {
 
         // Undo button
         document.getElementById('undo-btn').addEventListener('click', () => this.undo());
+
+        // Hint button
+        document.getElementById('hint-btn').addEventListener('click', () => this.showHint());
 
         // Play again button
         document.getElementById('play-again-btn').addEventListener('click', () => {
