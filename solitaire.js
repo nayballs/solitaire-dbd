@@ -468,16 +468,25 @@ class Solitaire {
 
     createCardElement(card, index = 0) {
         const el = document.createElement('div');
-        el.className = `card ${card.faceUp ? 'face-up ' + card.color : 'face-down'}`;
+        const isFaceCard = ['J', 'Q', 'K'].includes(card.rank);
+        el.className = `card ${card.faceUp ? 'face-up ' + card.color : 'face-down'}${isFaceCard && card.faceUp ? ' face-card' : ''}`;
         el.dataset.cardId = card.id;
 
         if (card.faceUp) {
+            // Face cards get special sinister symbols
+            const faceSymbols = {
+                'J': '☠',  // Skull - The Killer
+                'Q': '⛧',  // Entity symbol - The Entity
+                'K': '🗡'   // Dagger - The Slayer
+            };
+            const centerContent = isFaceCard ? faceSymbols[card.rank] : card.suit;
+
             el.innerHTML = `
                 <div class="card-corner top">
                     <span class="card-rank">${card.rank}</span>
                     <span class="card-suit">${card.suit}</span>
                 </div>
-                <span class="card-center">${card.suit}</span>
+                <span class="card-center">${centerContent}</span>
                 <div class="card-corner bottom">
                     <span class="card-rank">${card.rank}</span>
                     <span class="card-suit">${card.suit}</span>
