@@ -24,12 +24,85 @@ class Solitaire {
         this.dragOffset = { x: 0, y: 0 };
         this.isDragging = false;
 
+        // Streak tracking
+        this.streak = 0;
+        this.lastPlayDate = null;
+
         this.init();
     }
 
     init() {
+        this.loadStreak();
         this.setupEventListeners();
         this.newGame();
+    }
+
+    loadStreak() {
+        const savedStreak = localStorage.getItem('solitaire_streak');
+        const savedDate = localStorage.getItem('solitaire_last_play');
+
+        if (savedStreak && savedDate) {
+            const lastPlay = new Date(savedDate);
+            const today = new Date();
+
+            // Reset time to midnight for comparison
+            lastPlay.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+
+            const diffDays = Math.floor((today - lastPlay) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) {
+                // Same day - keep streak
+                this.streak = parseInt(savedStreak);
+            } else if (diffDays === 1) {
+                // Next day - streak continues (will increment on win)
+                this.streak = parseInt(savedStreak);
+            } else {
+                // Missed a day - reset streak
+                this.streak = 0;
+            }
+            this.lastPlayDate = savedDate;
+        }
+
+        this.updateStreakDisplay();
+    }
+
+    updateStreak() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+
+        const savedDate = localStorage.getItem('solitaire_last_play');
+
+        if (savedDate) {
+            const lastPlay = new Date(savedDate);
+            lastPlay.setHours(0, 0, 0, 0);
+            const lastPlayStr = lastPlay.toISOString().split('T')[0];
+
+            if (todayStr === lastPlayStr) {
+                // Already played today - don't increment
+                return;
+            }
+        }
+
+        // Increment streak and save
+        this.streak++;
+        localStorage.setItem('solitaire_streak', this.streak.toString());
+        localStorage.setItem('solitaire_last_play', todayStr);
+
+        this.updateStreakDisplay();
+    }
+
+    updateStreakDisplay() {
+        const streakEl = document.getElementById('streak');
+        if (streakEl) {
+            streakEl.textContent = `🔥 ${this.streak}`;
+            // Add fire animation for milestones
+            if (this.streak > 0 && this.streak % 10 === 0) {
+                streakEl.classList.add('streak-milestone');
+                setTimeout(() => streakEl.classList.remove('streak-milestone'), 2000);
+            }
+        }
     }
 
     createDeck() {
@@ -529,11 +602,24 @@ class Solitaire {
     }
 
     showWinModal() {
+        // Update streak on win
+        this.updateStreak();
+
         const modal = document.getElementById('win-modal');
         const stats = document.getElementById('win-stats');
         const minutes = Math.floor(this.timer / 60);
         const seconds = this.timer % 60;
         stats.textContent = `Time: ${minutes}:${seconds.toString().padStart(2, '0')} | Moves: ${this.moves}`;
+
+        // Show streak in modal
+        let streakModalEl = modal.querySelector('.streak-display');
+        if (!streakModalEl) {
+            streakModalEl = document.createElement('p');
+            streakModalEl.className = 'streak-display';
+            streakModalEl.style.cssText = 'font-size: 20px; margin: 10px 0; color: #ff6b00;';
+            stats.insertAdjacentElement('beforebegin', streakModalEl);
+        }
+        streakModalEl.textContent = `🔥 ${this.streak} Day Streak!`;
 
         // Show the special message on every win
         let messageEl = modal.querySelector('.special-message');

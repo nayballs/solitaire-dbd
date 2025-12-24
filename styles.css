@@ -107,6 +107,20 @@ body::before {
     color: rgba(212, 196, 168, 0.8);
 }
 
+.streak {
+    color: var(--entity-orange);
+    font-weight: 600;
+}
+
+.streak-milestone {
+    animation: streakPulse 0.5s ease-in-out 3;
+}
+
+@keyframes streakPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #ff3333; }
+}
+
 .header-btn {
     background: linear-gradient(180deg, rgba(139, 0, 0, 0.4) 0%, rgba(100, 0, 0, 0.6) 100%);
     border: 1px solid rgba(139, 0, 0, 0.5);
