@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Solitaire">
+    <meta name="theme-color" content="#0a0a0c">
+    <title>Solitaire</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <header id="header">
+            <div class="header-left">
+                <button id="new-game-btn" class="header-btn">New Game</button>
+            </div>
+            <div class="header-center">
+                <span id="timer">0:00</span>
+                <span id="moves">Moves: 0</span>
+            </div>
+            <div class="header-right">
+                <button id="undo-btn" class="header-btn">Undo</button>
+            </div>
+        </header>
+
+        <main id="game-board">
+            <!-- Stock and Waste -->
+            <div id="stock-area">
+                <div id="stock" class="card-pile stock-pile"></div>
+                <div id="waste" class="card-pile waste-pile"></div>
+            </div>
+
+            <!-- Foundations -->
+            <div id="foundation-area">
+                <div id="foundation-0" class="card-pile foundation-pile" data-foundation="0"></div>
+                <div id="foundation-1" class="card-pile foundation-pile" data-foundation="1"></div>
+                <div id="foundation-2" class="card-pile foundation-pile" data-foundation="2"></div>
+                <div id="foundation-3" class="card-pile foundation-pile" data-foundation="3"></div>
+            </div>
+
+            <!-- Tableau -->
+            <div id="tableau-area">
+                <div id="tableau-0" class="card-pile tableau-pile" data-tableau="0"></div>
+                <div id="tableau-1" class="card-pile tableau-pile" data-tableau="1"></div>
+                <div id="tableau-2" class="card-pile tableau-pile" data-tableau="2"></div>
+                <div id="tableau-3" class="card-pile tableau-pile" data-tableau="3"></div>
+                <div id="tableau-4" class="card-pile tableau-pile" data-tableau="4"></div>
+                <div id="tableau-5" class="card-pile tableau-pile" data-tableau="5"></div>
+                <div id="tableau-6" class="card-pile tableau-pile" data-tableau="6"></div>
+            </div>
+        </main>
+
+        <!-- Win Modal -->
+        <div id="win-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>You Escaped!</h2>
+                <p>The Entity releases you... for now.</p>
+                <p id="win-stats"></p>
+                <button id="play-again-btn" class="modal-btn">Enter the Fog Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="solitaire.js"></script>
+</body>
+</html>
