@@ -535,23 +535,14 @@ class Solitaire {
         const seconds = this.timer % 60;
         stats.textContent = `Time: ${minutes}:${seconds.toString().padStart(2, '0')} | Moves: ${this.moves}`;
 
-        // Check if this is her first ever win
-        const isFirstWin = !localStorage.getItem('solitaire_first_win');
-        const messageEl = modal.querySelector('.special-message');
-
-        if (isFirstWin) {
-            // Show the special message for her first win
-            if (!messageEl) {
-                const specialMsg = document.createElement('p');
-                specialMsg.className = 'special-message';
-                specialMsg.textContent = 'To my duchess, I love you';
-                specialMsg.style.cssText = 'font-style: italic; color: #d32f2f; font-size: 18px; margin: 15px 0; font-weight: 500;';
-                stats.insertAdjacentElement('afterend', specialMsg);
-            }
-            localStorage.setItem('solitaire_first_win', 'true');
-        } else if (messageEl) {
-            // Remove the special message on subsequent wins
-            messageEl.remove();
+        // Show the special message on every win
+        let messageEl = modal.querySelector('.special-message');
+        if (!messageEl) {
+            const specialMsg = document.createElement('p');
+            specialMsg.className = 'special-message';
+            specialMsg.textContent = 'To my duchess, I love you';
+            specialMsg.style.cssText = 'font-style: italic; color: #d32f2f; font-size: 18px; margin: 15px 0; font-weight: 500;';
+            stats.insertAdjacentElement('afterend', specialMsg);
         }
 
         modal.classList.remove('hidden');
