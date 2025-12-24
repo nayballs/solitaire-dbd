@@ -660,6 +660,83 @@ class Solitaire {
                 setTimeout(() => clone.remove(), 2000);
             }, i * 50);
         });
+
+        // Show Mikaela animation
+        this.showMikaelaAnimation();
+    }
+
+    showMikaelaAnimation() {
+        // Remove any existing Mikaela container
+        const existing = document.querySelector('.mikaela-container');
+        if (existing) existing.remove();
+
+        // Create Mikaela container
+        const container = document.createElement('div');
+        container.className = 'mikaela-container';
+
+        // Create the streak display that Mikaela points at
+        const streakDisplay = document.createElement('div');
+        streakDisplay.className = 'mikaela-streak-display';
+        streakDisplay.innerHTML = `
+            <div class="streak-label">WIN STREAK</div>
+            <div class="streak-number">${this.streak}</div>
+        `;
+        container.appendChild(streakDisplay);
+
+        // Create glow effect
+        const glow = document.createElement('div');
+        glow.className = 'mikaela-glow';
+        container.appendChild(glow);
+
+        // Check if custom image exists, otherwise use CSS silhouette
+        const img = new Image();
+        img.src = 'icons/mikaela.png';
+
+        img.onload = () => {
+            // Image exists - use it
+            img.className = 'mikaela-character';
+            img.alt = 'Mikaela';
+            container.insertBefore(img, streakDisplay);
+            this.addMikaelaMagicEffects(container);
+        };
+
+        img.onerror = () => {
+            // No image - use CSS silhouette
+            const silhouette = document.createElement('div');
+            silhouette.className = 'mikaela-silhouette';
+            silhouette.innerHTML = `
+                <div class="mikaela-hair"></div>
+                <div class="mikaela-body"></div>
+                <div class="mikaela-arm left"></div>
+                <div class="mikaela-arm right"></div>
+                <div class="mikaela-hand left"></div>
+                <div class="mikaela-hand right"></div>
+            `;
+            container.insertBefore(silhouette, streakDisplay);
+            this.addMikaelaMagicEffects(container);
+        };
+
+        document.body.appendChild(container);
+
+        // Trigger animation after a brief delay
+        setTimeout(() => {
+            container.classList.add('show');
+        }, 300);
+
+        // Remove after animation completes
+        setTimeout(() => {
+            container.classList.remove('show');
+            setTimeout(() => container.remove(), 1000);
+        }, 5000);
+    }
+
+    addMikaelaMagicEffects(container) {
+        // Add sparkles around the streak number
+        for (let i = 0; i < 8; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'magic-sparkle';
+            container.appendChild(sparkle);
+        }
     }
 
     hideWinModal() {
