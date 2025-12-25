@@ -853,7 +853,8 @@ class Solitaire {
         for (let i = start; i < this.waste.length; i++) {
             const card = this.waste[i];
             const el = this.createCardElement(card);
-            el.style.left = `${(i - start) * 15}px`;
+            // Fan cards to the left (negative offset) since stock is on the right
+            el.style.left = `${(i - start) * -15}px`;
             el.style.zIndex = i;
 
             if (i === this.waste.length - 1) {
