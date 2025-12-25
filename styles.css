@@ -551,6 +551,44 @@ body::before {
     box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
 }
 
+/* Auto Complete Button */
+.auto-complete-btn {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: linear-gradient(180deg, rgba(255, 107, 0, 0.8) 0%, rgba(200, 60, 0, 0.9) 100%);
+    color: #fff;
+    border: 2px solid rgba(255, 150, 50, 0.6);
+    padding: 15px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    z-index: 1500;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(255, 107, 0, 0.4), 0 0 30px rgba(255, 107, 0, 0.2);
+}
+
+.auto-complete-btn.hidden {
+    transform: translateX(-50%) translateY(100px);
+    pointer-events: none;
+}
+
+.auto-complete-btn.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.auto-complete-btn:hover {
+    box-shadow: 0 6px 30px rgba(255, 107, 0, 0.6), 0 0 40px rgba(255, 107, 0, 0.4);
+}
+
+.auto-complete-btn:active {
+    transform: translateX(-50%) translateY(2px);
+}
+
 /* Hint pulse animation */
 @keyframes hintPulse {
     0%, 100% {

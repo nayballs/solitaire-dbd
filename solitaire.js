@@ -28,6 +28,9 @@ class Solitaire {
         this.streak = 0;
         this.lastPlayDate = null;
 
+        // Auto-complete tracking
+        this.autoCompleteShown = false;
+
         this.init();
     }
 
@@ -142,6 +145,8 @@ class Solitaire {
         this.timer = 0;
         this.gameStarted = false;
         this.selectedCard = null;
+        this.autoCompleteShown = false;
+        this.hideAutoCompleteButton();
 
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
@@ -542,19 +547,36 @@ class Solitaire {
         this.hapticFeedback('medium');
     }
 
-    tryAutoComplete() {
-        // Check if all cards are face up (game is winnable)
-        let allFaceUp = true;
+    canAutoComplete() {
+        // Check if all cards are face up and stock is empty (game is winnable)
+        if (this.stock.length > 0) return false;
+
         for (const pile of this.tableau) {
             for (const card of pile) {
-                if (!card.faceUp) {
-                    allFaceUp = false;
-                    break;
-                }
+                if (!card.faceUp) return false;
             }
         }
+        return true;
+    }
 
-        if (!allFaceUp || this.stock.length > 0) return;
+    showAutoCompleteButton() {
+        const btn = document.getElementById('auto-complete-btn');
+        if (this.canAutoComplete() && !this.autoCompleteShown) {
+            btn.classList.remove('hidden');
+            btn.classList.add('show');
+            this.autoCompleteShown = true;
+            this.hapticFeedback('light');
+        }
+    }
+
+    hideAutoCompleteButton() {
+        const btn = document.getElementById('auto-complete-btn');
+        btn.classList.remove('show');
+        btn.classList.add('hidden');
+    }
+
+    runAutoComplete() {
+        this.hideAutoCompleteButton();
 
         // Auto-complete animation
         const autoMove = () => {
@@ -564,7 +586,7 @@ class Solitaire {
                 for (let i = 0; i < 4; i++) {
                     if (this.canMoveToFoundation(card, i)) {
                         this.moveCard(card, 'foundation', i);
-                        setTimeout(autoMove, 100);
+                        setTimeout(autoMove, 80);
                         return;
                     }
                 }
@@ -578,7 +600,7 @@ class Solitaire {
                     for (let i = 0; i < 4; i++) {
                         if (this.canMoveToFoundation(card, i)) {
                             this.moveCard(card, 'foundation', i);
-                            setTimeout(autoMove, 100);
+                            setTimeout(autoMove, 80);
                             return;
                         }
                     }
@@ -586,7 +608,7 @@ class Solitaire {
             }
         };
 
-        setTimeout(autoMove, 300);
+        setTimeout(autoMove, 100);
     }
 
     checkWin() {
@@ -597,7 +619,7 @@ class Solitaire {
             this.showWinModal();
         } else {
             // Check for auto-complete opportunity
-            this.tryAutoComplete();
+            this.showAutoCompleteButton();
         }
     }
 
@@ -1310,6 +1332,9 @@ class Solitaire {
             this.hideWinModal();
             this.newGame();
         });
+
+        // Auto complete button
+        document.getElementById('auto-complete-btn').addEventListener('click', () => this.runAutoComplete());
 
         // Tap empty tableau to move King
         for (let i = 0; i < 7; i++) {
