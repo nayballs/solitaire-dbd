@@ -81,7 +81,7 @@ body::before {
 /* Header - DBD Style */
 #header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 10px 15px;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%);
@@ -91,26 +91,52 @@ body::before {
     z-index: 10;
 }
 
-.header-left, .header-right {
-    flex: 1;
-    display: flex;
-}
-
-.header-left {
-    justify-content: flex-start;
-}
-
-.header-right {
-    justify-content: flex-end;
-    gap: 8px;
-}
-
-.header-center {
+.header-info {
     display: flex;
     gap: 20px;
     font-size: 14px;
     font-weight: 500;
     color: rgba(212, 196, 168, 0.8);
+    align-items: center;
+}
+
+/* Bottom Action Bar */
+#action-bar {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 10px 15px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border-top: 1px solid rgba(139, 0, 0, 0.3);
+    position: relative;
+    z-index: 10;
+}
+
+.action-btn {
+    background: linear-gradient(180deg, rgba(139, 0, 0, 0.4) 0%, rgba(100, 0, 0, 0.6) 100%);
+    border: 1px solid rgba(139, 0, 0, 0.5);
+    color: var(--bone);
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.action-btn:hover, .action-btn:active {
+    background: linear-gradient(180deg, rgba(180, 0, 0, 0.5) 0%, rgba(139, 0, 0, 0.7) 100%);
+    border-color: rgba(200, 0, 0, 0.6);
+    box-shadow: 0 0 10px rgba(139, 0, 0, 0.4);
+}
+
+.action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(50%);
 }
 
 .streak {
@@ -138,31 +164,6 @@ body::before {
     50% { transform: scale(1.2); color: #ff3333; }
 }
 
-.header-btn {
-    background: linear-gradient(180deg, rgba(139, 0, 0, 0.4) 0%, rgba(100, 0, 0, 0.6) 100%);
-    border: 1px solid rgba(139, 0, 0, 0.5);
-    color: var(--bone);
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.header-btn:hover, .header-btn:active {
-    background: linear-gradient(180deg, rgba(180, 0, 0, 0.5) 0%, rgba(139, 0, 0, 0.7) 100%);
-    border-color: rgba(200, 0, 0, 0.6);
-    box-shadow: 0 0 10px rgba(139, 0, 0, 0.4);
-}
-
-.header-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(50%);
-}
 
 /* Game Board */
 #game-board {
@@ -649,19 +650,15 @@ body::before {
         font-size: 24px;
     }
 
-    .header-btn {
-        padding: 6px 10px;
+    .header-info {
+        font-size: 12px;
+        gap: 12px;
+    }
+
+    .action-btn {
+        padding: 8px 12px;
         font-size: 11px;
         letter-spacing: 0.5px;
-    }
-
-    .header-center {
-        font-size: 11px;
-        gap: 8px;
-    }
-
-    .header-right {
-        gap: 5px;
     }
 
     #game-board {

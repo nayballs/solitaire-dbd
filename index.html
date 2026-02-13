@@ -16,19 +16,11 @@
 <body>
     <div id="game-container">
         <header id="header">
-            <div class="header-left">
-                <button id="new-game-btn" class="header-btn">New Game</button>
-                <button id="redeal-btn" class="header-btn">Redeal</button>
-            </div>
-            <div class="header-center">
+            <div class="header-info">
                 <span id="streak" class="streak">🔥 0</span>
                 <span id="freeze" class="freeze" title="Streak freezes remaining this month">❄️ 3</span>
                 <span id="timer">0:00</span>
                 <span id="moves">Moves: 0</span>
-            </div>
-            <div class="header-right">
-                <button id="hint-btn" class="header-btn">Hint</button>
-                <button id="undo-btn" class="header-btn">Undo</button>
             </div>
         </header>
 
@@ -61,6 +53,14 @@
 
         <!-- Auto Complete Button -->
         <button id="auto-complete-btn" class="auto-complete-btn hidden">Auto Complete</button>
+
+        <!-- Bottom Action Bar -->
+        <footer id="action-bar">
+            <button id="new-game-btn" class="action-btn">New Game</button>
+            <button id="redeal-btn" class="action-btn">Redeal</button>
+            <button id="hint-btn" class="action-btn">Hint</button>
+            <button id="undo-btn" class="action-btn">Undo</button>
+        </footer>
 
         <!-- Win Modal -->
         <div id="win-modal" class="modal hidden">
