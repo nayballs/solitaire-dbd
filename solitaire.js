@@ -28,8 +28,15 @@ class Solitaire {
         this.streak = 0;
         this.lastPlayDate = null;
 
+        // Streak freeze tracking
+        this.freezesRemaining = 3;
+        this.freezeMonth = null;
+
         // Auto-complete tracking
         this.autoCompleteShown = false;
+
+        // Initial deal state for redeal
+        this.initialState = null;
 
         this.init();
     }
@@ -41,6 +48,22 @@ class Solitaire {
     }
 
     loadStreak() {
+        // Migration: set baseline streak for first launch
+        const migrated = localStorage.getItem('solitaire_migrated_v2');
+        if (!migrated) {
+            const existingStreak = localStorage.getItem('solitaire_streak');
+            if (!existingStreak) {
+                localStorage.setItem('solitaire_streak', '27');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                localStorage.setItem('solitaire_last_play', today.toISOString().split('T')[0]);
+            }
+            localStorage.setItem('solitaire_migrated_v2', 'true');
+        }
+
+        // Load freezes first (needed for streak protection)
+        this.loadFreezes();
+
         const savedStreak = localStorage.getItem('solitaire_streak');
         const savedDate = localStorage.getItem('solitaire_last_play');
 
@@ -54,15 +77,20 @@ class Solitaire {
 
             const diffDays = Math.floor((today - lastPlay) / (1000 * 60 * 60 * 24));
 
-            if (diffDays === 0) {
-                // Same day - keep streak
-                this.streak = parseInt(savedStreak);
-            } else if (diffDays === 1) {
-                // Next day - streak continues (will increment on win)
+            if (diffDays <= 1) {
+                // Same day or next day - keep streak
                 this.streak = parseInt(savedStreak);
             } else {
-                // Missed a day - reset streak
-                this.streak = 0;
+                // Missed days - try to use freezes
+                const missedDays = diffDays - 1;
+                if (missedDays <= this.freezesRemaining) {
+                    // Freezes cover the gap
+                    this.streak = parseInt(savedStreak);
+                    this.useFreezes(missedDays);
+                } else {
+                    // Not enough freezes - reset streak
+                    this.streak = 0;
+                }
             }
             this.lastPlayDate = savedDate;
         }
@@ -105,6 +133,39 @@ class Solitaire {
                 streakEl.classList.add('streak-milestone');
                 setTimeout(() => streakEl.classList.remove('streak-milestone'), 2000);
             }
+        }
+    }
+
+    loadFreezes() {
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const savedMonth = localStorage.getItem('solitaire_freeze_month');
+        const savedFreezes = localStorage.getItem('solitaire_freezes_remaining');
+
+        if (savedMonth === currentMonth && savedFreezes !== null) {
+            this.freezesRemaining = parseInt(savedFreezes);
+        } else {
+            // New month - reset to 3 freezes
+            this.freezesRemaining = 3;
+            localStorage.setItem('solitaire_freeze_month', currentMonth);
+            localStorage.setItem('solitaire_freezes_remaining', '3');
+        }
+        this.freezeMonth = currentMonth;
+        this.updateFreezeDisplay();
+    }
+
+    useFreezes(count) {
+        this.freezesRemaining = Math.max(0, this.freezesRemaining - count);
+        localStorage.setItem('solitaire_freezes_remaining', this.freezesRemaining.toString());
+        this.updateFreezeDisplay();
+    }
+
+    updateFreezeDisplay() {
+        const freezeEl = document.getElementById('freeze');
+        if (freezeEl) {
+            freezeEl.textContent = `❄️ ${this.freezesRemaining}`;
+            freezeEl.title = `${this.freezesRemaining} streak freeze${this.freezesRemaining !== 1 ? 's' : ''} remaining this month`;
+            freezeEl.classList.toggle('no-freezes', this.freezesRemaining === 0);
         }
     }
 
@@ -170,10 +231,41 @@ class Solitaire {
         // Remaining cards go to stock
         this.stock = deck;
 
+        // Save initial state for redeal
+        this.initialState = {
+            stock: JSON.parse(JSON.stringify(this.stock)),
+            tableau: JSON.parse(JSON.stringify(this.tableau))
+        };
+
         this.render();
         this.updateUI();
 
         // Animate dealing
+        this.animateDeal();
+    }
+
+    redeal() {
+        if (!this.initialState) return;
+
+        this.stock = JSON.parse(JSON.stringify(this.initialState.stock));
+        this.waste = [];
+        this.foundations = [[], [], [], []];
+        this.tableau = JSON.parse(JSON.stringify(this.initialState.tableau));
+        this.history = [];
+        this.moves = 0;
+        this.timer = 0;
+        this.gameStarted = false;
+        this.selectedCard = null;
+        this.autoCompleteShown = false;
+        this.hideAutoCompleteButton();
+
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+
+        this.render();
+        this.updateUI();
         this.animateDeal();
     }
 
@@ -1320,6 +1412,9 @@ class Solitaire {
 
         // New game button
         document.getElementById('new-game-btn').addEventListener('click', () => this.newGame());
+
+        // Redeal button
+        document.getElementById('redeal-btn').addEventListener('click', () => this.redeal());
 
         // Undo button
         document.getElementById('undo-btn').addEventListener('click', () => this.undo());

@@ -118,6 +118,17 @@ body::before {
     font-weight: 600;
 }
 
+.freeze {
+    color: #00bfff;
+    font-weight: 600;
+    cursor: help;
+    font-size: 13px;
+}
+
+.freeze.no-freezes {
+    opacity: 0.4;
+}
+
 .streak-milestone {
     animation: streakPulse 0.5s ease-in-out 3;
 }
