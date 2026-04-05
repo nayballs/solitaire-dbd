@@ -48,6 +48,19 @@ class Solitaire {
     }
 
     loadStreak() {
+        // One-time fix: set streak to 78 for recovery
+        const streakFix = localStorage.getItem('solitaire_streak_fix_78');
+        if (!streakFix) {
+            const currentStreak = localStorage.getItem('solitaire_streak');
+            if (!currentStreak || parseInt(currentStreak) === 0) {
+                localStorage.setItem('solitaire_streak', '78');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                localStorage.setItem('solitaire_last_play', today.toISOString().split('T')[0]);
+            }
+            localStorage.setItem('solitaire_streak_fix_78', 'true');
+        }
+
         // Migration: set baseline streak for first launch
         const migrated = localStorage.getItem('solitaire_migrated_v2');
         if (!migrated) {
@@ -66,36 +79,94 @@ class Solitaire {
 
         const savedStreak = localStorage.getItem('solitaire_streak');
         const savedDate = localStorage.getItem('solitaire_last_play');
+        const backupStreak = localStorage.getItem('solitaire_streak_backup');
+        const backupDate = localStorage.getItem('solitaire_streak_backup_date');
+
+        // Get today's date in UTC to avoid timezone issues
+        const today = new Date();
+        const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
 
         if (savedStreak && savedDate) {
             const lastPlay = new Date(savedDate);
-            const today = new Date();
+            const lastPlayUTC = Date.UTC(lastPlay.getFullYear(), lastPlay.getMonth(), lastPlay.getDate());
+            const diffDays = Math.floor((todayUTC - lastPlayUTC) / (1000 * 60 * 60 * 24));
 
-            // Reset time to midnight for comparison
-            lastPlay.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
-
-            const diffDays = Math.floor((today - lastPlay) / (1000 * 60 * 60 * 24));
-
-            if (diffDays <= 1) {
+            // Validate streak is a reasonable number
+            const parsedStreak = parseInt(savedStreak);
+            if (isNaN(parsedStreak) || parsedStreak < 0 || parsedStreak > 10000) {
+                // Streak is corrupted, try backup
+                if (backupStreak && backupDate) {
+                    this.restoreFromBackup();
+                    return;
+                }
+                this.streak = 0;
+            } else if (diffDays <= 1) {
                 // Same day or next day - keep streak
-                this.streak = parseInt(savedStreak);
+                this.streak = parsedStreak;
+                this.saveBackup();
             } else {
                 // Missed days - try to use freezes
                 const missedDays = diffDays - 1;
                 if (missedDays <= this.freezesRemaining) {
                     // Freezes cover the gap
-                    this.streak = parseInt(savedStreak);
+                    this.streak = parsedStreak;
                     this.useFreezes(missedDays);
+                    this.saveBackup();
                 } else {
                     // Not enough freezes - reset streak
                     this.streak = 0;
                 }
             }
             this.lastPlayDate = savedDate;
+        } else if (backupStreak && backupDate) {
+            // No primary data, but have backup - restore from backup
+            this.restoreFromBackup();
+        } else {
+            // No data at all - initialize
+            this.streak = 0;
+            this.lastPlayDate = null;
+        }
+
+        // If streak is 0 but backup exists with a higher value, use backup
+        // This handles the case where localStorage was cleared but backup remains
+        if (this.streak === 0 && backupStreak && parseInt(backupStreak) > 0) {
+            const backupParsed = parseInt(backupStreak);
+            const backupDateObj = new Date(backupDate);
+            const backupDateUTC = Date.UTC(backupDateObj.getFullYear(), backupDateObj.getMonth(), backupDateObj.getDate());
+            const daysSinceBackup = Math.floor((todayUTC - backupDateUTC) / (1000 * 60 * 60 * 24));
+            
+            // Only restore if backup is recent (within 2 days)
+            if (daysSinceBackup <= 2) {
+                this.streak = backupParsed;
+                this.lastPlayDate = backupDate;
+                this.savePrimaryFromBackup();
+            }
         }
 
         this.updateStreakDisplay();
+    }
+
+    saveBackup() {
+        localStorage.setItem('solitaire_streak_backup', this.streak.toString());
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        localStorage.setItem('solitaire_streak_backup_date', today.toISOString().split('T')[0]);
+    }
+
+    restoreFromBackup() {
+        const backupStreak = localStorage.getItem('solitaire_streak_backup');
+        const backupDate = localStorage.getItem('solitaire_streak_backup_date');
+        
+        if (backupStreak && backupDate) {
+            this.streak = parseInt(backupStreak);
+            this.lastPlayDate = backupDate;
+            this.savePrimaryFromBackup();
+        }
+    }
+
+    savePrimaryFromBackup() {
+        localStorage.setItem('solitaire_streak', this.streak.toString());
+        localStorage.setItem('solitaire_last_play', this.lastPlayDate);
     }
 
     updateStreak() {
@@ -116,10 +187,13 @@ class Solitaire {
             }
         }
 
-        // Increment streak and save
+        // Increment streak (now supports infinity - no upper limit)
         this.streak++;
         localStorage.setItem('solitaire_streak', this.streak.toString());
         localStorage.setItem('solitaire_last_play', todayStr);
+        
+        // Save backup for recovery
+        this.saveBackup();
 
         this.updateStreakDisplay();
     }
@@ -1472,11 +1546,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.game = new Solitaire();
 });
 
-// Register service worker for PWA
+// Unregister any previously-registered service workers — they interfere
+// with Vite's dev server by serving cached files instead of fresh ones.
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered'))
-            .catch(err => console.log('Service Worker registration failed:', err));
+    navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
+        if (regs.length) console.log('Unregistered', regs.length, 'service worker(s)');
     });
 }
