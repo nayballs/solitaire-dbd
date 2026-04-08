@@ -41,6 +41,38 @@ class Solitaire {
         this.init();
     }
 
+    getUKDateParts(date = new Date()) {
+        const formatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+
+        const parts = formatter.formatToParts(date);
+        const day = parts.find((p) => p.type === 'day')?.value;
+        const month = parts.find((p) => p.type === 'month')?.value;
+        const year = parts.find((p) => p.type === 'year')?.value;
+
+        return { year, month, day };
+    }
+
+    getUKDateString(date = new Date()) {
+        const { year, month, day } = this.getUKDateParts(date);
+        return `${year}-${month}-${day}`;
+    }
+
+    getUKMonthKey(date = new Date()) {
+        const { year, month } = this.getUKDateParts(date);
+        return `${year}-${month}`;
+    }
+
+    getDayDiffFromDateStrings(startDateStr, endDateStr) {
+        const start = new Date(`${startDateStr}T00:00:00Z`);
+        const end = new Date(`${endDateStr}T00:00:00Z`);
+        return Math.floor((end - start) / (1000 * 60 * 60 * 24));
+    }
+
     init() {
         this.loadStreak();
         this.setupEventListeners();
@@ -48,30 +80,17 @@ class Solitaire {
     }
 
     loadStreak() {
-        // One-time fix: set streak to 78 for recovery
-        const streakFix = localStorage.getItem('solitaire_streak_fix_78');
-        if (!streakFix) {
-            const currentStreak = localStorage.getItem('solitaire_streak');
-            if (!currentStreak || parseInt(currentStreak) === 0) {
-                localStorage.setItem('solitaire_streak', '78');
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                localStorage.setItem('solitaire_last_play', today.toISOString().split('T')[0]);
+        // Migration: normalize all players to the restored baseline streak
+        const baselineMigration = localStorage.getItem('solitaire_migrated_v3_baseline_83');
+        if (!baselineMigration) {
+            const existingStreak = parseInt(localStorage.getItem('solitaire_streak') || '0', 10);
+            if (isNaN(existingStreak) || existingStreak < 83) {
+                localStorage.setItem('solitaire_streak', '83');
             }
-            localStorage.setItem('solitaire_streak_fix_78', 'true');
-        }
-
-        // Migration: set baseline streak for first launch
-        const migrated = localStorage.getItem('solitaire_migrated_v2');
-        if (!migrated) {
-            const existingStreak = localStorage.getItem('solitaire_streak');
-            if (!existingStreak) {
-                localStorage.setItem('solitaire_streak', '27');
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                localStorage.setItem('solitaire_last_play', today.toISOString().split('T')[0]);
+            if (!localStorage.getItem('solitaire_last_play')) {
+                localStorage.setItem('solitaire_last_play', this.getUKDateString());
             }
-            localStorage.setItem('solitaire_migrated_v2', 'true');
+            localStorage.setItem('solitaire_migrated_v3_baseline_83', 'true');
         }
 
         // Load freezes first (needed for streak protection)
@@ -82,14 +101,10 @@ class Solitaire {
         const backupStreak = localStorage.getItem('solitaire_streak_backup');
         const backupDate = localStorage.getItem('solitaire_streak_backup_date');
 
-        // Get today's date in UTC to avoid timezone issues
-        const today = new Date();
-        const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayStr = this.getUKDateString();
 
         if (savedStreak && savedDate) {
-            const lastPlay = new Date(savedDate);
-            const lastPlayUTC = Date.UTC(lastPlay.getFullYear(), lastPlay.getMonth(), lastPlay.getDate());
-            const diffDays = Math.floor((todayUTC - lastPlayUTC) / (1000 * 60 * 60 * 24));
+            const diffDays = this.getDayDiffFromDateStrings(savedDate, todayStr);
 
             // Validate streak is a reasonable number
             const parsedStreak = parseInt(savedStreak);
@@ -131,9 +146,7 @@ class Solitaire {
         // This handles the case where localStorage was cleared but backup remains
         if (this.streak === 0 && backupStreak && parseInt(backupStreak) > 0) {
             const backupParsed = parseInt(backupStreak);
-            const backupDateObj = new Date(backupDate);
-            const backupDateUTC = Date.UTC(backupDateObj.getFullYear(), backupDateObj.getMonth(), backupDateObj.getDate());
-            const daysSinceBackup = Math.floor((todayUTC - backupDateUTC) / (1000 * 60 * 60 * 24));
+            const daysSinceBackup = this.getDayDiffFromDateStrings(backupDate, todayStr);
             
             // Only restore if backup is recent (within 2 days)
             if (daysSinceBackup <= 2) {
@@ -148,9 +161,7 @@ class Solitaire {
 
     saveBackup() {
         localStorage.setItem('solitaire_streak_backup', this.streak.toString());
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        localStorage.setItem('solitaire_streak_backup_date', today.toISOString().split('T')[0]);
+        localStorage.setItem('solitaire_streak_backup_date', this.getUKDateString());
     }
 
     restoreFromBackup() {
@@ -170,18 +181,12 @@ class Solitaire {
     }
 
     updateStreak() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = this.getUKDateString();
 
         const savedDate = localStorage.getItem('solitaire_last_play');
 
         if (savedDate) {
-            const lastPlay = new Date(savedDate);
-            lastPlay.setHours(0, 0, 0, 0);
-            const lastPlayStr = lastPlay.toISOString().split('T')[0];
-
-            if (todayStr === lastPlayStr) {
+            if (todayStr === savedDate) {
                 // Already played today - don't increment
                 return;
             }
@@ -211,13 +216,13 @@ class Solitaire {
     }
 
     loadFreezes() {
-        const now = new Date();
-        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const currentMonth = this.getUKMonthKey();
         const savedMonth = localStorage.getItem('solitaire_freeze_month');
         const savedFreezes = localStorage.getItem('solitaire_freezes_remaining');
 
         if (savedMonth === currentMonth && savedFreezes !== null) {
-            this.freezesRemaining = parseInt(savedFreezes);
+            const parsed = parseInt(savedFreezes, 10);
+            this.freezesRemaining = Number.isNaN(parsed) ? 3 : Math.min(3, Math.max(0, parsed));
         } else {
             // New month - reset to 3 freezes
             this.freezesRemaining = 3;
@@ -238,9 +243,33 @@ class Solitaire {
         const freezeEl = document.getElementById('freeze');
         if (freezeEl) {
             freezeEl.textContent = `❄️ ${this.freezesRemaining}`;
-            freezeEl.title = `${this.freezesRemaining} streak freeze${this.freezesRemaining !== 1 ? 's' : ''} remaining this month`;
+            freezeEl.title = `${this.freezesRemaining} streak freeze${this.freezesRemaining !== 1 ? 's' : ''} remaining this month. Click to use one for today.`;
             freezeEl.classList.toggle('no-freezes', this.freezesRemaining === 0);
         }
+    }
+
+    useFreezeForToday() {
+        this.loadFreezes();
+
+        const todayStr = this.getUKDateString();
+        const savedDate = localStorage.getItem('solitaire_last_play');
+
+        if (this.freezesRemaining <= 0) {
+            alert('No freezes remaining this month.');
+            return;
+        }
+
+        if (savedDate === todayStr) {
+            alert('You already played today, so you do not need a freeze.');
+            return;
+        }
+
+        this.useFreezes(1);
+        this.lastPlayDate = todayStr;
+        localStorage.setItem('solitaire_last_play', todayStr);
+        this.saveBackup();
+
+        alert('Freeze used for today. Your streak is protected until tomorrow (UK time).');
     }
 
     createDeck() {
@@ -1495,6 +1524,9 @@ class Solitaire {
 
         // Hint button
         document.getElementById('hint-btn').addEventListener('click', () => this.showHint());
+
+        // Freeze button (streak protection)
+        document.getElementById('freeze').addEventListener('click', () => this.useFreezeForToday());
 
         // Play again button
         document.getElementById('play-again-btn').addEventListener('click', () => {
